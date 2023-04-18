@@ -50,7 +50,7 @@ while True:
     current_time = datetime.now().time()
     end_time = (datetime.now() + timedelta(minutes=1)).time()
     
-    if current_time <= startzeit or  end_time:
+    if current_time >= startzeit and current_time <= end_time:
         # GPIO.output(17, GPIO.LOW)  # Eingeschaltetes Relais bedeutet, dass das Ventil offen ist
         GPIO.output(23, GPIO.HIGH)
         time.sleep(dauer1)
