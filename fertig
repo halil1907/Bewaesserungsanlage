@@ -37,7 +37,7 @@ GPIO.setup(22, GPIO.OUT)
 # Konfigurieren Sie die SPI-Schnittstelle
 spi = spidev.SpiDev()
 spi.open(0, 0)
-spi.max_speed_hz = 1000000
+spi.max_speed_hz = 1e6 # == 1000000
 
 def readChannel(channel):
     """Lesen Sie den Sensorwert aus der angegebenen SPI-Kanalnummer."""
@@ -48,9 +48,10 @@ def readChannel(channel):
 # Warten Sie, bis die Startzeit erreicht ist, und bewässern Sie dann für die angegebene Zeit
 while True:
     current_time = datetime.now().time()
-    end_time = (datetime.now() + timedelta(minutes=1)).time()
+    end_time = (datetime.combine(datetime.today(), startzeit) + timedelta(minutes=1)).time() # Not sure about this change, 
+    # if it worked before then keep that but test it out before going with one or the other.
     
-    if current_time >= startzeit and current_time <= end_time:
+    if current_time >= startzeit and current_time <= end_time: # You can't chain "or" like you did before
         # GPIO.output(17, GPIO.LOW)  # Eingeschaltetes Relais bedeutet, dass das Ventil offen ist
         GPIO.output(23, GPIO.HIGH)
         time.sleep(dauer1)
