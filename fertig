@@ -1,0 +1,82 @@
+import spidev
+import os
+import time
+import RPi.GPIO as GPIO
+import pymysql
+from datetime import datetime, timedelta
+
+# Stellen Sie eine Verbindung zur Datenbank her
+conn = pymysql.connect(
+    host="localhost",
+    database="wochenplan",
+    user="attendanceadmin",
+    password="pimylifeup"
+)
+
+# Holen Sie die Werte aus der Datenbank
+cur = conn.cursor()
+cur.execute("SELECT * FROM steuerung2")
+row = cur.fetchone()
+
+# Extrahieren Sie die relevanten Werte aus der Datenbankzeile
+startzeit = datetime.strptime(str(row[2]), '%H:%M:%S').time()
+
+dauer1 = int(row[3])
+dauer2 = int(row[4])
+dauer3 = int(row[5])
+dauer4 = int(row[6])
+
+# Konfigurieren Sie die GPIO-Pins
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(17, GPIO.OUT)
+GPIO.setup(23, GPIO.OUT)
+GPIO.setup(24, GPIO.OUT)
+GPIO.setup(4, GPIO.OUT)
+GPIO.setup(22, GPIO.OUT)
+
+# Konfigurieren Sie die SPI-Schnittstelle
+spi = spidev.SpiDev()
+spi.open(0, 0)
+spi.max_speed_hz = 1000000
+
+def readChannel(channel):
+    """Lesen Sie den Sensorwert aus der angegebenen SPI-Kanalnummer."""
+    val = spi.xfer2([1, (8 + channel) << 4, 0])
+    data = ((val[1] & 3) << 8) + val[2]
+    return data
+
+# Warten Sie, bis die Startzeit erreicht ist, und bewässern Sie dann für die angegebene Zeit
+while True:
+    current_time = datetime.now().time()
+    end_time = (datetime.now() + timedelta(minutes=1)).time()
+    
+    if current_time <= startzeit or  end_time:
+        # GPIO.output(17, GPIO.LOW)  # Eingeschaltetes Relais bedeutet, dass das Ventil offen ist
+        GPIO.output(23, GPIO.HIGH)
+        time.sleep(dauer1)
+        GPIO.output(23, GPIO.LOW)
+        time.sleep(0.5)
+
+        GPIO.output(24, GPIO.HIGH)
+        time.sleep(dauer2)
+        GPIO.output(24, GPIO.LOW)
+        time.sleep(0.5)
+
+        GPIO.output(4, GPIO.HIGH)
+        time.sleep(dauer3)
+        GPIO.output(4, GPIO.LOW)
+        time.sleep(0.5)
+
+        GPIO.output(22, GPIO.HIGH)
+        time.sleep(dauer4)
+        GPIO.output(22, GPIO.LOW)
+        time.sleep(0.5)
+
+        GPIO.output(17, GPIO.HIGH)  # Ausschalten des Relais schließt das Ventil
+        print("Bewässerung abgeschlossen")
+        break
+    else:
+        print("Warten auf Startzeit...")
+        time.sleep(5)
+
+GPIO.cleanup()
